@@ -121,9 +121,78 @@ function Hamburger({ open, onClick }) {
   );
 }
 
+function WaitlistModal({ open, onClose }) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | success | error
+
+  if (!open) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus("sending");
+    try {
+      const res = await fetch("https://formspree.io/f/mbdzajlj", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name: name || "Not provided" }),
+      });
+      if (res.ok) {
+        setStatus("success");
+        setEmail("");
+        setName("");
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, animation: "fade-in-up 0.3s ease" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 12, padding: "clamp(24px, 4vw, 40px)", maxWidth: 440, width: "100%", position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: TEXT_DIM, fontSize: 20, cursor: "pointer", lineHeight: 1 }}>&times;</button>
+
+        {status === "success" ? (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>&#10003;</div>
+            <h3 style={{ fontSize: 22, fontWeight: 700, color: TEXT, marginBottom: 8 }}>You're on the list</h3>
+            <p style={{ color: TEXT_DIM, fontSize: 14, lineHeight: 1.6 }}>We'll notify you as soon as BestieBots is ready to launch. Keep an eye on your inbox.</p>
+            <button onClick={onClose} className="cta-btn cta-secondary" style={{ marginTop: 24 }}>Close</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: CYAN, marginBottom: 8 }}>// Early Access</div>
+            <h3 style={{ fontSize: 22, fontWeight: 700, color: TEXT, marginBottom: 8 }}>Join the waitlist</h3>
+            <p style={{ color: TEXT_DIM, fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>Be the first to automate your Telegram signals. We'll notify you when we launch.</p>
+            <div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: "block", fontSize: 12, color: TEXT_DIM, marginBottom: 6, fontFamily: "'JetBrains Mono', monospace" }}>Name (optional)</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" style={{ width: "100%", padding: "12px 14px", borderRadius: 6, border: `1px solid ${CARD_BORDER}`, background: DARK, color: TEXT, fontSize: 14, fontFamily: "inherit", outline: "none", transition: "border-color 0.2s" }} onFocus={(e) => e.target.style.borderColor = CYAN} onBlur={(e) => e.target.style.borderColor = CARD_BORDER} />
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 12, color: TEXT_DIM, marginBottom: 6, fontFamily: "'JetBrains Mono', monospace" }}>Email *</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required style={{ width: "100%", padding: "12px 14px", borderRadius: 6, border: `1px solid ${CARD_BORDER}`, background: DARK, color: TEXT, fontSize: 14, fontFamily: "inherit", outline: "none", transition: "border-color 0.2s" }} onFocus={(e) => e.target.style.borderColor = CYAN} onBlur={(e) => e.target.style.borderColor = CARD_BORDER} />
+              </div>
+              <button onClick={handleSubmit} disabled={!email || status === "sending"} className="cta-btn cta-primary" style={{ width: "100%", justifyContent: "center", opacity: !email || status === "sending" ? 0.5 : 1 }}>
+                {status === "sending" ? "Submitting..." : "Join the Waitlist →"}
+              </button>
+              {status === "error" && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 12, textAlign: "center" }}>Something went wrong. Please try again.</p>}
+              <p style={{ color: TEXT_DIM, fontSize: 11, marginTop: 12, textAlign: "center" }}>No spam. Unsubscribe anytime.</p>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function BestieBots() {
   const [scrollY, setScrollY] = useState(0);
   const [mobileNav, setMobileNav] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const openModal = () => { setMobileNav(false); setModalOpen(true); };
 
   useEffect(() => {
     const h = () => setScrollY(window.scrollY);
@@ -280,7 +349,7 @@ export default function BestieBots() {
             <a href="#how-it-works" className="nav-link">How It Works</a>
             <a href="#pricing" className="nav-link">Pricing</a>
             <a href="#faq" className="nav-link">FAQ</a>
-            <button className="cta-btn cta-primary" style={{ padding: "8px 20px", fontSize: 13 }}>Start Free Trial</button>
+            <button className="cta-btn cta-primary" style={{ padding: "8px 20px", fontSize: 13 }} onClick={openModal}>Start Free Trial</button>
           </div>
           <Hamburger open={mobileNav} onClick={() => setMobileNav(!mobileNav)} />
         </div>
@@ -290,7 +359,7 @@ export default function BestieBots() {
             <a href="#how-it-works" className="nav-link" onClick={handleNavClick}>How It Works</a>
             <a href="#pricing" className="nav-link" onClick={handleNavClick}>Pricing</a>
             <a href="#faq" className="nav-link" onClick={handleNavClick}>FAQ</a>
-            <button className="cta-btn cta-primary" style={{ marginTop: 8, justifyContent: "center" }} onClick={handleNavClick}>Start Free Trial</button>
+            <button className="cta-btn cta-primary" style={{ marginTop: 8, justifyContent: "center" }} onClick={openModal}>Start Free Trial</button>
           </div>
         )}
       </nav>
@@ -314,7 +383,7 @@ export default function BestieBots() {
                 BestieBots connects your Telegram signal channels to your exchange and executes every trade automatically — with proper risk management, in under a second.
               </p>
               <div className="hero-cta-row">
-                <button className="cta-btn cta-primary">Start 14-Day Free Trial →</button>
+                <button className="cta-btn cta-primary" onClick={openModal}>Start 14-Day Free Trial →</button>
                 <a href="#how-it-works" className="cta-btn cta-secondary">See How It Works</a>
               </div>
               <div className="hero-stats">
@@ -420,7 +489,7 @@ export default function BestieBots() {
                   </div>
                 ))}
               </div>
-              <button className={`cta-btn ${p.highlight ? "cta-primary" : "cta-secondary"}`} style={{ width: "100%", justifyContent: "center" }}>{p.cta}</button>
+              <button onClick={openModal} className={`cta-btn ${p.highlight ? "cta-primary" : "cta-secondary"}`} style={{ width: "100%", justifyContent: "center" }}>{p.cta}</button>
             </div>
           ))}
         </div>
@@ -445,7 +514,7 @@ export default function BestieBots() {
         <div style={{ textAlign: "center", padding: "clamp(32px, 5vw, 64px) clamp(16px, 4vw, 32px)", borderRadius: 16, border: `1px solid ${CARD_BORDER}`, background: "radial-gradient(ellipse at center, rgba(0,229,255,0.06) 0%, transparent 70%)" }}>
           <h2 style={{ fontSize: "clamp(24px, 4vw, 40px)", fontWeight: 800, marginBottom: 16, letterSpacing: "-0.03em" }}>Stop missing signals.<br /><span style={{ color: CYAN }}>Start executing.</span></h2>
           <p style={{ color: TEXT_DIM, fontSize: 16, marginBottom: 32, maxWidth: 440, margin: "0 auto 32px" }}>14-day free trial. No credit card. Full access.<br />See what automated execution looks like.</p>
-          <button className="cta-btn cta-primary" style={{ fontSize: 16, padding: "16px 40px" }}>Start Your Free Trial →</button>
+          <button className="cta-btn cta-primary" style={{ fontSize: 16, padding: "16px 40px" }} onClick={openModal}>Start Your Free Trial →</button>
           <div style={{ marginTop: 20, fontSize: 13, color: TEXT_DIM, fontFamily: "'JetBrains Mono', monospace" }}>Setup takes under 5 minutes</div>
         </div>
       </Section>
@@ -467,6 +536,8 @@ export default function BestieBots() {
       <div style={{ padding: "16px 24px", textAlign: "center", fontSize: 11, color: "rgba(132,146,166,0.5)", lineHeight: 1.6, maxWidth: 800, margin: "0 auto" }}>
         BestieBots is a software tool that executes trades based on user-configured signal sources. It is not a regulated financial service and does not provide investment advice. Trading cryptocurrency futures involves substantial risk of loss. Past performance does not guarantee future results. You are solely responsible for your trading decisions.
       </div>
+
+      <WaitlistModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }
